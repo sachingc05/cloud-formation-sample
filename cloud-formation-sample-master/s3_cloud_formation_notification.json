@@ -1,0 +1,112 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Description": "S3 Bucket Template ",
+
+  "Metadata": {
+    "Copyright": [
+      ""
+    ]
+  },
+
+  "Parameters": {
+    "S3BucketName": {
+      "Description": "Name of the S3 bucket",
+      "Type": "String",
+      "ConstraintDescription": "S3BucketName must be between 3 and 63 characters in length.",
+      "MinLength": 3,
+      "MaxLength": 63
+    },
+    "S3LifeCycleDelete": {
+      "Description": "Specify a number of days to keep files in the bucket, a value of 0 keeps the files stored in the bucket.",
+      "Type": "Number",
+      "MinValue": "0",
+      "MaxValue": "365",
+      "Default": "0"
+    },
+    "LambdaNotificationEvent": {
+      "Description": "The S3 bucket event for which to invoke the Lambda function.",
+      "Type": "String",
+      "Default": "s3:ObjectCreated:*",
+      "AllowedValues": [
+        "s3:ObjectCreated:*",
+        "s3:ObjectCreated:Put",
+        "s3:ObjectCreated:Post",
+        "s3:ObjectCreated:Copy",
+        "s3:ObjectCreated:CompleteMultipartUpload",
+        "s3:ObjectRemoved:*",
+        "s3:ObjectRemoved:Delete",
+        "s3:ObjectRemoved:DeleteMarkerCreated",
+        "s3:ReducedRedundancyLostObject"
+      ]
+    },
+    "LambdaNotificationFilterName": {
+      "Description": "Whether the filter matches the prefix or suffix of object key names.",
+      "Type": "String",
+      "Default": "prefix",
+      "AllowedValues": [
+        "prefix",
+        "suffix"
+      ]
+    },
+    "LambdaNotificationFilterValue": {
+      "Description": "The value that the filter searches for in object key names.",
+      "Type": "String",
+      "Default": ""
+    },
+    "LambdaNotificationFunctionArn": {
+      "Description": "The ARN of the Lambda function that S3 invokes when the specified event type occurs.",
+      "Type": "String",
+      "Default": ""
+    },
+  },
+  "Resources": {
+    "S3Bucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": { "Ref": "S3BucketName" },
+        "LifecycleConfiguration": {
+          "Rules": [
+            {
+              "ExpirationInDays": {  "Ref": "S3LifeCycleDelete"  },
+              "Status" : "Enabled"
+            }
+          ]
+        },
+        "NotificationConfiguration": {
+          "LambdaConfigurations" : [
+            {
+              "Function": {
+                "Ref": "LambdaNotificationFunctionArn"
+              },
+              "Event": {
+                "Ref": "LambdaNotificationEvent"
+              },
+              "Filter" :{
+                "S3Key": {
+                  "Rules": [
+                    {
+                      "Name": {
+                        "Ref": "LambdaNotificationFilterName"
+                      },
+                      "Value": {
+                        "Ref": "LambdaNotificationFilterValue"
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  },
+
+  "Outputs": {
+    "S3BucketName": {
+      "Description": "Name of the S3 Bucket",
+      "Value": { "Ref": "S3BucketName" }
+    }
+  }
+}
